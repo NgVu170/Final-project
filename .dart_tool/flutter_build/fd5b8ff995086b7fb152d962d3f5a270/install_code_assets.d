@@ -1,0 +1,1 @@
+ E:\\Mobile\ Programming\\Project\\Project\ Excersice\\Final\ project\\note_app_using_para\\.dart_tool\\flutter_build\\fd5b8ff995086b7fb152d962d3f5a270\\native_assets.json: 
