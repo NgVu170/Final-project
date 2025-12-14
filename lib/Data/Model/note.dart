@@ -71,7 +71,7 @@ class Note {
       id: doc.id,
       userId: data['userId'] ?? '',
       isCompleted: data['isCompleted'] ?? false,
-      parentFolderId: data['parentFolderId'] ?? 'inbox',
+      parentFolderId: data['parentFolderId'] ?? 'Storage',
       createdAt: (data['dateCreated'] as Timestamp).toDate(),
       updatedAt: data['dateModified'] != null
           ? (data['dateModified'] as Timestamp).toDate()
