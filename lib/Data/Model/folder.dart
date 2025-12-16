@@ -11,7 +11,6 @@ class Folder{
   final bool? isSystem;
   final DateTime createdAt;
   final DateTime? updatedAt;
-
   //Configuration for UI
   final String? icon;
   final String? color;

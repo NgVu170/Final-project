@@ -13,6 +13,27 @@ class FolderRepository {
     });
   }
 
+  Stream<List<Folder>>getSubFoldersStream(String userId, String parentId){
+    return FirestoreHelper.folderRef(userId)
+        .where('parentFolderId', isEqualTo: parentId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+  }
+
+  Future<bool> hasSubItems(String userId, String folderId) async{
+    final subFolderSnapshot = await FirestoreHelper.folderRef(userId)
+        .where('parentFolder', isEqualTo: folderId)
+        .limit(1)
+        .get();
+    if (subFolderSnapshot.docs.isNotEmpty) return true;
+    final noteSnapshot = await FirestoreHelper.noteRef(userId)
+        .where('parentFolderId', isEqualTo: folderId)
+        .limit(1)
+        .get();
+    return noteSnapshot.docs.isNotEmpty;
+  }
+
   Future<void> addFolder(String userId, Folder newFolder) async{
     try{
       await FirestoreHelper.folderRef(userId).add(newFolder);
@@ -30,7 +51,7 @@ class FolderRepository {
     }
   }
 
-  Future<void> updateNote(String userId, Folder updatedFolder) async{
+  Future<void> updateFolder(String userId, Folder updatedFolder) async{
     try{
       if (updatedFolder.id!.isNotEmpty) return;
       await FirestoreHelper.folderRef(userId)
@@ -39,5 +60,10 @@ class FolderRepository {
     } catch (e){
       throw Exception("[ERROR] Updating note: $e");
     }
+  }
+
+  Future<bool> checkIfUserHasFolders(String userId) async {
+    final snapshot = await FirestoreHelper.folderRef(userId).limit(1).get();
+    return snapshot.docs.isNotEmpty;
   }
 }

@@ -52,7 +52,7 @@ class NoteCubit extends Cubit<NoteState> {
         .toList();
   }
   //endregion
-  //region Function
+  //region Methods
   void fetchNotes(String userId){
     emit(NoteLoading()); //loading
     _noteSub?.cancel(); //delete the previous stream
