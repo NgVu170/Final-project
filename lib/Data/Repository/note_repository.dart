@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../Core/Utils/firestore_helper.dart';
-import '../../Model/note.dart';
+import '../../Core/Utils/firestore_helper.dart';
+import '../Model/note.dart';
 
 class NoteRepository {
   Stream<List<Note>> getNoteStream(String userId){
@@ -31,7 +31,7 @@ class NoteRepository {
 
   Future<void> updateNote(String userId, Note updatedNote) async{
     try{
-      if (updatedNote.id == null) return;
+      if (updatedNote.id!.isNotEmpty) return;
       await FirestoreHelper.noteRef(userId)
           .doc(updatedNote.id)
           .set(updatedNote, SetOptions(merge: true));

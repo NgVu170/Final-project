@@ -6,7 +6,7 @@ import 'package:equatable/equatable.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 import 'package:note_app_using_para/Data/Model/note.dart';
-import 'package:note_app_using_para/Data/Repository/Note/note_repository.dart';
+import 'package:note_app_using_para/Data/Repository/note_repository.dart';
 
 part 'note_state.dart';
 

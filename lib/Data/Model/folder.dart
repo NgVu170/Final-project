@@ -21,7 +21,7 @@ class Folder{
     this.id,
     required this.userId,
     this.parentFolderId,
-    required this.name,
+      required this.name,
     this.type = 'storage', // Default
     this.icon,
     this.color,
@@ -30,7 +30,7 @@ class Folder{
     this.updatedAt,
   });
 
-  //=============== Fucntion ===============
+  //=============== Methods ===============
   //Copy with techniques
   Folder copyWith({
     String? id,
