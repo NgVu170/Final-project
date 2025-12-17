@@ -62,7 +62,6 @@ class AppUserCubit extends Cubit<AppUserState> {
   Future<String> uploadImage(String uid, String imagePath) async{
     try{
       File file = File(imagePath);
-      // Logic ghi đè ảnh profile.jpg là rất chuẩn -> Tiết kiệm dung lượng
       final ref = FirebaseStorage.instance.ref().child('users/$uid/profile.jpg');
       await ref.putFile(file);
       return await ref.getDownloadURL();

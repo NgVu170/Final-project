@@ -7,9 +7,9 @@ import '../../Data/Repository/auth_repository.dart';
 part 'auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
-  final AuthRepository _authRepo = AuthRepository();
+  final AuthRepository _authRepo;
   StreamSubscription? _authSubscription;
-  AuthCubit() : super(AuthInitial()){
+  AuthCubit(this._authRepo) : super(AuthInitial()){
     _subscribeToAuthStream();
   }
 
@@ -25,6 +25,7 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> logIn(String email, String password) async {
     try{
+      emit(AuthLoading());
       await _authRepo.signIn(email: email, password: password);
     } catch (e) {
       emit(AuthFailure("[SYSTEM] Login: ${e.toString()}"));
@@ -34,7 +35,7 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> signUp(String email, String password, String displayName) async {
     try{
       emit(AuthLoading());
-      _authRepo.signUp(email: email, password: password, displayName: displayName);
+      await _authRepo.signUp(email: email, password: password, displayName: displayName);
     } catch (e){
       emit(AuthFailure("[SYSTEM] Signup: ${e.toString()}"));
     }
@@ -51,7 +52,7 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> resetPassword(String email) async{
     try{
       emit(AuthLoading());
-      _authRepo.resetPassword(email);
+      await _authRepo.resetPassword(email);
       emit(Unauthenticated());
     } catch (e){
       emit(AuthFailure("[SYSTEM] Reset password: ${e.toString()}"));
