@@ -42,7 +42,6 @@ class FolderRepository {
     }
   }
 
-  //Final step. In previous will find the child than delete it first
   Future<void> deleteFolder(String userId, String folderId) async{
     try{
       await FirestoreHelper.noteRef(userId).doc(folderId).delete();

@@ -117,6 +117,13 @@ class NoteCubit extends Cubit<NoteState> {
   // --- UPDATED NOTE ---
   Future<void> updateNote(String userId, Note note) async{
     try{
+      final cleanTags = _processTags(note.tags);
+      final cleanLinks = _processLinks(note.urlLinks);
+      final updatedNote = note.copyWith(
+        tags: cleanTags,
+        urlLinks: cleanLinks,
+        updatedAt: DateTime.now(),
+      );
       await _repo.updateNote(userId, note);
     } catch (e) {
       emit(NoteFailure("[ERROR] Update note: ${e.toString()}"));
