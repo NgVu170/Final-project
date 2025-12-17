@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../Data/Model/note.dart';
 import '../../Data/Model/folder.dart';
+import '../../Data/Model/user.dart';
 
 class FirestoreHelper {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -25,5 +26,14 @@ class FirestoreHelper {
       fromFirestore: (snapshot, _) => Note.fromFirestore(snapshot),
       toFirestore: (snapshot,_) => snapshot.toFirestore(),
     );
+  }
+  //User preference
+  static CollectionReference<AppUser> userRef(){
+    return _db
+      .collection('users')
+      .withConverter<AppUser>(
+        fromFirestore: (snapshot, _) => AppUser.fromFirestore(snapshot),
+        toFirestore: (snapshot,_) => snapshot.toJson(),
+      );
   }
 }

@@ -9,7 +9,8 @@ class FolderRepository {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot){
-          return snapshot.docs.map((doc) => Folder.fromFirestore(doc)).toList();
+          return snapshot.docs.map((doc)
+          => Folder.fromFirestore(doc)).toList();
     });
   }
 
