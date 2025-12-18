@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:note_app_using_para/Logic/Authentication/auth_cubit.dart';
+import 'package:note_app_using_para/Presentation/Screens/Authentication/signupScreen.dart';
 
 class LoginScreen extends StatefulWidget{
   const LoginScreen({super.key});
@@ -156,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           const Text("Don't have an account?"),
                           GestureDetector(
                             onTap: (){
-                              //TODO: Change to signup screen
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => SignUpScreen()));
                             },
                               child: Text(
                                   "Register now",
