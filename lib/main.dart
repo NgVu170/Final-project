@@ -8,6 +8,7 @@ import 'Data/Repository/note_repository.dart'; // Giả sử đã có
 import 'Logic/Authentication/auth_cubit.dart';
 import 'Logic/AppUser/appuser_cubit.dart';
 import 'Logic/Theme/theme_cubit.dart';
+import 'Presentation/Screens/AppUser/homeScreen.dart';
 import 'firebase_options.dart';
 //Import Presentation for UI
 import 'Presentation/Screens/Authentication/loginScreen.dart';
@@ -57,9 +58,9 @@ class AppContent extends StatelessWidget{
             theme: themeState.themeData,
             home: BlocBuilder<AuthCubit, AuthState>(
               builder: (context, authState){
-                // if (authState is Authenticated){
-                //   return HomeScreen(uid: authState.user.uid);)
-                // }
+                if (authState is Authenticated){
+                  return RootScreen(uid: authState.user.uid);
+                }
                 if (authState is Unauthenticated) {
                   return const LoginScreen();
                 }

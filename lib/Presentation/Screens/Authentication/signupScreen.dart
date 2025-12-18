@@ -93,7 +93,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                        borderRadius: BorderRadius.circular(12),
                      ),
                    ),
-                   validator: (v) => v!.contains('@') ? "Unvalid email" : null,
+                   validator: (v) => !v!.contains('@') ? "Unvalid email" : null,
                  ),
                  SizedBox(height: 16,),
                  // --- Password ---
@@ -120,7 +120,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                      ),
                    ),
                    validator: (v) {
-                     if (v != passwordController.text) return "Password must be same as Cnnfirm password";
+                     if (v != passwordController.text) return "Password must be same as Confirm password";
                      return null;
                    },
                  ),
@@ -140,7 +140,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                      backgroundColor: theme.primaryColor,
                      padding: const EdgeInsets.symmetric(vertical: 16),
                    ),
-                   child: const Text("Signup now", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                   child: const Text("Sign up now", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                  ),
                  TextButton(
                    onPressed: () => Navigator.pop(context),
