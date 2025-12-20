@@ -16,7 +16,7 @@ class FirestoreHelper {
         toFirestore: (snapshot,_) => snapshot.toFireStore(),
       );
   }
-  //Note reference
+  //Profile reference
   static CollectionReference<Note> noteRef(String userId){
     return _db
     .collection('users')

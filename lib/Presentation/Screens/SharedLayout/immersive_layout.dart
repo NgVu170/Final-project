@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../Widgets/navBar.dart';
-import '../../Widgets/search_bar.dart';
+import 'immersive_editor.dart';
 
-// Widget này sẽ bọc lấy nội dung của từng màn hình
+import '../../Widgets/navBar.dart';
+import '../../Widgets/searchBar.dart';
+
 class ImmersiveLayout extends StatefulWidget {
-  final Widget body;           // Nội dung màn hình (VD: TextField của Home)
-  final int currentIndex;      // Tab hiện tại
-  final Function(int) onTabTapped; // Hàm chuyển tab
-  final Function(String)? onSearch; // Hàm search (nếu màn hình đó cần search)
+  final Widget body;
+  final int currentIndex;
+  final Function(int) onTabTapped;
+  final Function(String)? onSearch;
+  final Widget? floatingActionButton;
 
   const ImmersiveLayout({
     super.key,
@@ -15,6 +17,7 @@ class ImmersiveLayout extends StatefulWidget {
     required this.currentIndex,
     required this.onTabTapped,
     this.onSearch,
+    this.floatingActionButton,
   });
 
   @override
@@ -22,55 +25,64 @@ class ImmersiveLayout extends StatefulWidget {
 }
 
 class _ImmersiveLayoutState extends State<ImmersiveLayout> {
-  bool _showUI = true; // Trạng thái ẩn/hiện chung cho tất cả các màn
+  bool _showUI = true;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // Dùng Stack ở đây để tái sử dụng logic Animation
-      body: Stack(
-        children: [
-          // 1. NỘI DUNG CHÍNH (Body)
-          Positioned.fill(
-            child: GestureDetector(
-              // Logic toggle UI khi chạm/vuốt nằm ở đây
-              onTap: () {
-                // Đóng bàn phím nếu đang mở
-                FocusManager.instance.primaryFocus?.unfocus();
-                setState(() => _showUI = !_showUI);
-              },
-              onVerticalDragEnd: (details) {
-                if (details.primaryVelocity! > 0) setState(() => _showUI = true);
-                if (details.primaryVelocity! < 0) setState(() => _showUI = false);
-              },
-              child: widget.body, // Nội dung truyền vào sẽ nằm ở đây
-            ),
-          ),
+    final colorScheme = Theme.of(context).colorScheme;
 
-          // 2. SEARCH BAR (Chỉ hiện nếu màn hình đó có chức năng search)
-          if (widget.onSearch != null)
+    return Scaffold(
+      backgroundColor: colorScheme.surface,
+
+      body: NotificationListener<ToggleNavbarNotification>(
+        onNotification: (notification) {
+          setState(() {
+            _showUI = !_showUI;
+          });
+          return true;
+        },
+        child: Stack(
+          children: [
+            // 1. BODY
+            Positioned.fill(
+              child: widget.body,
+            ),
+
+            // 2. SEARCH BAR
+            if (widget.onSearch != null)
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                top: _showUI ? 50 : -150,
+                left: 16,
+                right: 16,
+                child: CustomSearchBar(onChanged: widget.onSearch!),
+              ),
+
+            // 3. NAV BAR
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
-              top: _showUI ? 50 : -150,
-              left: 16,
-              right: 16,
-              child: CustomSearchBar(onChanged: widget.onSearch!),
+              bottom: _showUI ? 0 : -100,
+              left: 0,
+              right: 0,
+              child: CustomNavBar(
+                currentIndex: widget.currentIndex,
+                onTap: widget.onTabTapped,
+              ),
             ),
 
-          // 3. NAV BAR (Dùng lại widget ở Bước 1)
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            bottom: _showUI ? 0 : -100,
-            left: 0,
-            right: 0,
-            child: CustomNavBar(
-              currentIndex: widget.currentIndex,
-              onTap: widget.onTabTapped,
-            ),
-          ),
-        ],
+            // 4. FLOATING ACTION BUTTON
+            if (widget.floatingActionButton != null)
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                bottom: _showUI ? 100 : -100,
+                right: 24,
+                child: widget.floatingActionButton!,
+              ),
+          ],
+        ),
       ),
     );
   }

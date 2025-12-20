@@ -66,4 +66,26 @@ class FolderRepository {
     final snapshot = await FirestoreHelper.folderRef(userId).limit(1).get();
     return snapshot.docs.isNotEmpty;
   }
+
+  Future<void>  ensureSystemFoldersExist(String userId) async {
+    final hasData = await checkIfUserHasFolders(userId);
+    if (hasData) return;
+
+    final systemFolders = ['Projects',
+      'Areas', 'Resources', 'Archives'];
+    final batch = FirebaseFirestore.instance.batch();
+    for( var name in systemFolders){
+      final docRef = FirestoreHelper.folderRef(userId).doc();
+      final folder = Folder(
+        id: docRef.id,
+        userId: userId,
+        name: name,
+        createdAt: DateTime.now(),
+        parentFolderId: 'Root',
+        isSystem: true,
+      );
+      batch.set(docRef, folder);
+    }
+    await batch.commit();
+  }
 }

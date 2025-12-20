@@ -50,25 +50,7 @@ class FolderCubit extends Cubit<FolderState> {
   }
   Future<void> initSystemFolder(String userId) async{
     try{
-      final hasData = await _folderRepo.checkIfUserHasFolders(userId);
-      if (hasData) return;
-
-      final systemFolders = ['Projects',
-        'Areas', 'Resources', 'Archives'];
-      final batch = FirebaseFirestore.instance.batch();
-      for( var name in systemFolders){
-        final docRef = FirestoreHelper.folderRef(userId).doc();
-        final folder = Folder(
-          id: docRef.id,
-          userId: userId,
-          name: name,
-          createdAt: DateTime.now(),
-          parentFolderId: 'Root',
-          isSystem: true,
-        );
-        batch.set(docRef, folder.toFireStore());
-      }
-      await batch.commit();
+      await _folderRepo.ensureSystemFoldersExist(userId);
       fetchFolders(userId);
     } catch (e) {
       emit(FolderFailure("[ERROR] Init PARA folders: $e"));

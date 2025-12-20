@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
 class CustomNavBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
+
   const CustomNavBar({
     super.key,
     required this.currentIndex,
@@ -11,63 +13,64 @@ class CustomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
-      height: 80,
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(context, icon: Icons.home_filled, index: 0),
-          _buildNavItem(context, icon: Icons.folder_open, index: 1),
-
-          GestureDetector(
-            onTap: () => onTap(2),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                  color: theme.primaryColor,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(color: theme.primaryColor.withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 4))
-                  ]
-              ),
-              child: const Icon(Icons.add, color: Colors.white, size: 28),
+    return SafeArea(
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(40, 0, 40, 20), // Margin rộng hơn vì ít nút hơn
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(40),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
             ),
-          ),
-
-          _buildNavItem(context, icon: Icons.archive_outlined, index: 3),
-          _buildNavItem(context, icon: Icons.person_outline, index: 4),
-        ],
+          ],
+          border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.5),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            // Tab 1: Home / Quick Note
+            _buildNavItem(context, 0, CupertinoIcons.pencil_outline, CupertinoIcons.pencil, "Write"),
+            // Tab 2: Folder / Organize
+            _buildNavItem(context, 1, CupertinoIcons.folder, CupertinoIcons.folder_solid, "Folder"),
+            // Tab 3: Profile / Settings
+            _buildNavItem(context, 2, CupertinoIcons.person, CupertinoIcons.person_fill, "Profile"),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildNavItem(BuildContext context, {required IconData icon, required int index}) {
-    final theme = Theme.of(context);
+  Widget _buildNavItem(BuildContext context, int index, IconData iconOff, IconData iconOn, String label) {
     final isSelected = currentIndex == index;
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant.withOpacity(0.6);
 
-    return IconButton(
-      icon: Icon(
-          icon,
-          color: isSelected ? theme.primaryColor : Colors.grey, // Đổi màu nếu được chọn
-          size: 28
+    return GestureDetector(
+      onTap: () => onTap(index),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8), // Padding rộng hơn
+        decoration: BoxDecoration(
+          color: isSelected ? colorScheme.primary.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Icon(isSelected ? iconOn : iconOff, color: color, size: 26),
+            if (isSelected) ...[
+              const SizedBox(width: 8),
+              Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13)),
+            ],
+          ],
+        ),
       ),
-      onPressed: () => onTap(index),
     );
   }
 }

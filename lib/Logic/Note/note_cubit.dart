@@ -64,6 +64,7 @@ class NoteCubit extends Cubit<NoteState> {
   }
   // --- ADD NOTE ---
   Future<void> addNote (String userId, String title, String content,
+      String? parentFolderId,
       List<String>? tags,
       List<String>? localImagePath,
       List<String>? urlLinks) async{
@@ -84,7 +85,7 @@ class NoteCubit extends Cubit<NoteState> {
         title: title,
         content: content,
         createdAt: DateTime.now(),
-        parentFolderId: 'Storage',
+        parentFolderId: parentFolderId ?? 'Storage',
         isCompleted: false,
         tags: cleanTags,
         imageUrls: cloudUrls,
