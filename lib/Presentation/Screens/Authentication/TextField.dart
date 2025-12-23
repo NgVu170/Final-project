@@ -23,26 +23,28 @@ class TextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return TextFormField(
       controller: controller,
       obscureText: isObscure,
       validator: validator,
-      style: GoogleFonts.poppins(fontSize: 14),
+      style: GoogleFonts.poppins(fontSize: 14, color: colorScheme.onSurface),
       decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: Colors.grey),
+        prefixIcon: Icon(icon, color: colorScheme.onSurfaceVariant),
         suffixIcon: isPassword
             ? IconButton(
-          icon: Icon(
-            isObscure ? Icons.visibility_off : Icons.visibility,
-            color: Colors.grey,
-          ),
-          onPressed: onToggleVisibility,
-        )
+                icon: Icon(
+                  isObscure ? Icons.visibility_off : Icons.visibility,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                onPressed: onToggleVisibility,
+              )
             : null,
         hintText: hintText,
-        hintStyle: GoogleFonts.poppins(color: Colors.grey),
+        hintStyle: GoogleFonts.poppins(color: colorScheme.onSurfaceVariant),
         filled: true,
-        fillColor: Colors.grey.shade100,
+        fillColor: colorScheme.surfaceVariant.withOpacity(0.3),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -53,7 +55,15 @@ class TextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.blueAccent, width: 1.5),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.error, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: colorScheme.error, width: 2),
         ),
       ),
     );

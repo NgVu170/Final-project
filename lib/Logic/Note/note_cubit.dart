@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,13 +11,37 @@ import 'package:note_app_using_para/Data/Repository/note_repository.dart';
 
 part 'note_state.dart';
 
+enum SearchType { content, hashtag, link }
+
 class NoteCubit extends Cubit<NoteState> {
   //region Attribute and constructor
   final NoteRepository _repo;
   StreamSubscription? _noteSub;
+  List<Note> _allNotes = [];
+
   NoteCubit(this._repo) : super(NoteInitial());
   //endregion
+
   //region Helper
+  String _plainTextFromContent(String contentJson) {
+    if (contentJson.isEmpty) return "";
+    try {
+      final List<dynamic> delta = jsonDecode(contentJson);
+      final buffer = StringBuffer();
+      for (var op in delta) {
+        if (op is Map && op.containsKey('insert')) {
+          final insertData = op['insert'];
+          if (insertData is String) {
+            buffer.write(insertData);
+          }
+        }
+      }
+      return buffer.toString();
+    } catch (e) {
+      return contentJson; // Not a valid delta, return as is.
+    }
+  }
+
   Future<List<String>> _uploadImgToFirebase(String userId, List<String> paths) async{
     List<String> downloadUrls = [];
     final storageRef = FirebaseStorage.instance.ref();
@@ -52,16 +77,53 @@ class NoteCubit extends Cubit<NoteState> {
         .toList();
   }
   //endregion
+
   //region Methods
   void fetchNotes(String userId){
     emit(NoteLoading()); //loading
     _noteSub?.cancel(); //delete the previous stream
     _noteSub = _repo.getNoteStream(userId).listen((notes){
+      _allNotes = notes;
       emit(NoteLoaded(notes));
     }, onError: (e){
       emit(NoteFailure(e.toString()));
     });
   }
+
+  void searchNotes(String query, SearchType type, bool isDescending) {
+    List<Note> filteredNotes;
+
+    if (query.isEmpty) {
+      filteredNotes = List<Note>.from(_allNotes);
+    } else {
+      filteredNotes = _allNotes.where((note) {
+        final q = query.toLowerCase();
+        switch (type) {
+          case SearchType.content:
+            final plainTextContent = _plainTextFromContent(note.content);
+            return note.title.toLowerCase().contains(q) ||
+                   plainTextContent.toLowerCase().contains(q);
+          case SearchType.hashtag:
+            return note.tags.any((tag) => tag.toLowerCase().contains(q));
+          case SearchType.link:
+            return note.urlLinks?.any((link) => link.toLowerCase().contains(q)) ?? false;
+        }
+      }).toList();
+    }
+
+    filteredNotes.sort((a, b) {
+      final dateA = a.updatedAt ?? a.createdAt;
+      final dateB = b.updatedAt ?? b.createdAt;
+      return isDescending ? dateB.compareTo(dateA) : dateA.compareTo(dateB);
+    });
+
+    emit(NoteLoaded(filteredNotes));
+  }
+
+  void clearSearch() {
+    emit(NoteLoaded(_allNotes));
+  }
+
   // --- ADD NOTE ---
   Future<void> addNote (String userId, String title, String content,
       String? parentFolderId,
@@ -73,10 +135,10 @@ class NoteCubit extends Cubit<NoteState> {
       List<String> cloudUrls = [];
 
       if (localImagePath != null && localImagePath.isNotEmpty) {
-        // Upload và lấy link 'https://' về
         cloudUrls = await _uploadImgToFirebase(userId, localImagePath);
       }
 
+      // TODO: Extract tags and links from content
       final cleanTags = _processTags(tags);
       final cleanLinks = _processLinks(urlLinks);
 
@@ -118,6 +180,7 @@ class NoteCubit extends Cubit<NoteState> {
   // --- UPDATED NOTE ---
   Future<void> updateNote(String userId, Note note) async{
     try{
+      // TODO: Extract tags and links from content before updating
       final cleanTags = _processTags(note.tags);
       final cleanLinks = _processLinks(note.urlLinks);
       final updatedNote = note.copyWith(
@@ -125,7 +188,7 @@ class NoteCubit extends Cubit<NoteState> {
         urlLinks: cleanLinks,
         updatedAt: DateTime.now(),
       );
-      await _repo.updateNote(userId, note);
+      await _repo.updateNote(userId, updatedNote);
     } catch (e) {
       emit(NoteFailure("[ERROR] Update note: ${e.toString()}"));
     }

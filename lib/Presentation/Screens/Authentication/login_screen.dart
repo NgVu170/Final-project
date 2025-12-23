@@ -32,9 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       },
       child: Scaffold(
-        // 2. MÀU NỀN THEO THEME (Trắng ở Light, Đen/Xám ở Dark)
         backgroundColor: colorScheme.surface,
-
         body: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
@@ -62,7 +60,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 40),
 
-                  // CustomTextField đã sửa ở bước trước để ăn theo theme rồi
                   TextField(
                     controller: _emailController,
                     hintText: "Email Address",

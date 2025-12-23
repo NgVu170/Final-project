@@ -48,10 +48,9 @@ class _SignupScreenState extends State<SignupScreen> {
       listener: (context, state) {
         if (state is AuthFailure) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            SnackBar(content: Text(state.message), backgroundColor: colorScheme.error),
           );
-        }
-        if (state is Authenticated) {
+        } else if (state is Authenticated) {
           Navigator.of(context).pop();
         }
       },
@@ -61,7 +60,7 @@ class _SignupScreenState extends State<SignupScreen> {
           backgroundColor: colorScheme.surface,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+            icon: Icon(Icons.arrow_back_ios, color: colorScheme.onSurface),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -80,13 +79,13 @@ class _SignupScreenState extends State<SignupScreen> {
                     style: GoogleFonts.poppins(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   Text(
                     "Start your journey with us",
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey),
+                    style: GoogleFonts.poppins(fontSize: 14, color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 40),
 
@@ -131,7 +130,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   TextField(
                     controller: _confirmPasswordController,
                     hintText: "Confirm Password",
-                    icon: Icons.lock_clock,
+                    icon: Icons.lock_clock_outlined,
                     isPassword: true,
                     isObscure: _isConfirmHidden,
                     onToggleVisibility: () => setState(() => _isConfirmHidden = !_isConfirmHidden),
@@ -150,7 +149,8 @@ class _SignupScreenState extends State<SignupScreen> {
                       return ElevatedButton(
                         onPressed: _onSignUpPressed,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: colorScheme.surface,
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: colorScheme.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -161,7 +161,6 @@ class _SignupScreenState extends State<SignupScreen> {
                           style: GoogleFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
                           ),
                         ),
                       );
