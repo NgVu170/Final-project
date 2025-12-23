@@ -2,20 +2,24 @@ import 'package:flutter/material.dart';
 import '../../Core/Constants/SearchBar/search_type.dart';
 
 class CustomSearchBar extends StatelessWidget {
+  // Pass the current values in to make this a controlled widget.
+  final String searchQuery;
   final SearchType searchType;
   final SortOrder sortOrder;
 
+  // Callbacks with specific types for type safety.
   final Function(String) onSearchQueryChanged;
-  final Function(dynamic) onSearchTypeChanged;
-  final Function(bool) onSortOrderChanged;
+  final Function(SearchType) onSearchTypeChanged;
+  final Function(SortOrder) onSortOrderChanged;
 
   const CustomSearchBar({
     super.key,
+    required this.searchQuery,
+    required this.searchType,
+    required this.sortOrder,
     required this.onSearchQueryChanged,
     required this.onSearchTypeChanged,
     required this.onSortOrderChanged,
-    this.searchType = SearchType.content,
-    this.sortOrder = SortOrder.ascending,
   });
 
   @override
@@ -30,9 +34,9 @@ class CustomSearchBar extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          //----Sort text ----
           flex: 2,
           child: TextField(
+            controller: TextEditingController(text: searchQuery),
             onChanged: onSearchQueryChanged,
             style: TextStyle(fontSize: 14, color: colorScheme.onSurface),
             decoration: InputDecoration(
@@ -46,8 +50,6 @@ class CustomSearchBar extends StatelessWidget {
                 borderSide: BorderSide(color: colorScheme.primary)
               ),
               prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
-
-              //----Sort Icon ----
               suffixIcon: IconButton(
                 tooltip: "Change order",
                 icon: Icon(
@@ -60,7 +62,8 @@ class CustomSearchBar extends StatelessWidget {
                   final newOrder = sortOrder == SortOrder.ascending
                       ? SortOrder.descending
                       : SortOrder.ascending;
-                  onSortOrderChanged(newOrder as bool);
+                  // Pass the enum value directly.
+                  onSortOrderChanged(newOrder);
                 },
               )
             ),
@@ -120,4 +123,3 @@ class CustomSearchBar extends StatelessWidget {
     );
   }
 }
-
