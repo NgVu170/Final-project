@@ -1,115 +1,135 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+// Import Models & Logic
 import '../../../Data/Model/folder.dart';
 import '../../../Data/Model/note.dart';
+import '../../../Data/Repository/folder_repository.dart';
+import '../../../Data/Repository/note_repository.dart';
 import '../../../Logic/Folder/folder_cubit.dart';
 import '../../../Logic/Note/note_cubit.dart';
+
 import '../Editor/note_editor_screen.dart';
 
-class FolderScreen extends StatefulWidget {
+class FolderScreen extends StatelessWidget {
   final String uid;
-  final String parentFolderId;
-  final String title;
 
-  const FolderScreen({
-    super.key,
-    required this.uid,
-    this.parentFolderId = 'Root',
-    this.title = 'My Notes',
-  });
+  const FolderScreen({super.key, required this.uid});
 
   @override
-  State<FolderScreen> createState() => _FolderScreenState();
+  Widget build(BuildContext context) {
+    // 1. KHỞI TẠO CUBIT TẠI ĐÂY (ROOT)
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) => FolderCubit(
+            context.read<FolderRepository>(),
+            context.read<NoteRepository>(),
+          )..initRealtimeData(uid),
+        ),
+        BlocProvider(
+          create: (context) => NoteCubit(context.read<NoteRepository>()),
+        ),
+      ],
+      // Truyền UID xuống widget con
+      child: _FolderContent(
+        uid: uid,
+        parentFolderId: 'Root', // Root là null (hoặc 'Root' tùy DB)
+        folderName: "My Notes",
+      ),
+    );
+  }
 }
 
-class _FolderScreenState extends State<FolderScreen> {
-  @override
-  void initState() {
-    super.initState();
-    _fetchData();
-  }
+// --- WIDGET NỘI BỘ ---
+class _FolderContent extends StatelessWidget {
+  final String uid; // [ADD] Cần biến này để truyền cho Editor
+  final String? parentFolderId;
+  final String folderName;
 
-  void _fetchData() {
-    if (mounted) {
-      if (widget.parentFolderId == 'Root') {
-        context.read<FolderCubit>().fetchFolders(widget.uid);
-        context.read<NoteCubit>().fetchNotes(widget.uid);
-      } else {
-        context.read<FolderCubit>().fetchSubFolders(widget.uid, widget.parentFolderId);
-        context.read<NoteCubit>().fetchNotesInFolder(widget.uid, widget.parentFolderId);
-      }
-    }
-  }
+  const _FolderContent({
+    required this.uid,
+    required this.parentFolderId,
+    required this.folderName,
+  });
 
-  void _navigateToSubFolder(Folder folder) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => FolderScreen(
-        uid: widget.uid,
-        parentFolderId: folder.id!,
-        title: folder.name,
-      ),
-    )).then((_) => _fetchData());
-  }
+  // Hàm chuyển trang Folder con
+  void _navigateToSubFolder(BuildContext context, Folder folder) {
+    final folderCubit = context.read<FolderCubit>();
+    final noteCubit = context.read<NoteCubit>();
 
-  void _openNoteEditor(Note note) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => NoteEditorScreen(uid: widget.uid, note: note),
-    )).then((_) => _fetchData());
-  }
-
-  void _createNewNote() {
-     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => NoteEditorScreen(
-        uid: widget.uid,
-        parentFolderId: widget.parentFolderId,
-      ),
-    ));
-  }
-  
-  void _showCreateFolderDialog() {
-    final nameController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Create Folder'),
-        content: TextField(controller: nameController, decoration: const InputDecoration(hintText: "Folder Name"), autofocus: true),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          ElevatedButton(
-            child: const Text('Create'),
-            onPressed: () {
-              if (nameController.text.isNotEmpty) {
-                context.read<FolderCubit>().createSubFolder(widget.uid, nameController.text, widget.parentFolderId);
-                Navigator.of(context).pop();
-              }
-            },
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: folderCubit), // Tái sử dụng FolderCubit
+            BlocProvider.value(value: noteCubit),   // Tái sử dụng NoteCubit
+          ],
+          child: _FolderContent(
+            uid: uid, // [ADD] Truyền tiếp UID xuống cấp dưới
+            parentFolderId: folder.id,
+            folderName: folder.name ?? "Folder",
           ),
-        ],
+        ),
       ),
     );
   }
 
-  void _showRenameDialog(dynamic item) {
-    final nameController = TextEditingController(text: item is Folder ? item.name : item.title);
+  // [LOGIC MỞ EDITOR]
+  void _openNoteEditor(BuildContext context, Note note) {
+    // Lấy NoteCubit hiện tại để mang sang màn hình Editor
+    final noteCubit = context.read<NoteCubit>();
+
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => BlocProvider.value(
+        // QUAN TRỌNG: Phải cung cấp NoteCubit cho màn hình Editor
+        // để nó gọi hàm updateNote được.
+        value: noteCubit,
+        child: NoteEditorScreen(
+          uid: uid,
+          note: note, // Truyền Note cần sửa vào
+          parentFolderId: parentFolderId ?? 'Root',
+        ),
+      ),
+    ));
+  }
+
+  void _showCreateDialog(BuildContext context) {
+    final nameController = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Rename ${item is Folder ? 'Folder' : 'Note'}'),
-        content: TextField(controller: nameController, autofocus: true),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Create New'),
+        content: TextField(
+            controller: nameController,
+            decoration: const InputDecoration(hintText: "Name"),
+            autofocus: true
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          TextButton(
-            child: const Text('Save'),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+          // Add Note (Tạo nhanh note rỗng)
+          ElevatedButton.icon(
+            icon: const Icon(Icons.note_add),
+            label: const Text('Note'),
             onPressed: () {
               if (nameController.text.isNotEmpty) {
-                if (item is Folder) {
-                  final updatedFolder = item.copyWith(name: nameController.text);
-                  context.read<FolderCubit>().updateFolder(widget.uid, updatedFolder);
-                } else if (item is Note) {
-                  final updatedNote = item.copyWith(title: nameController.text);
-                  context.read<NoteCubit>().updateNote(widget.uid, updatedNote);
-                }
-                Navigator.of(context).pop();
+                context.read<NoteCubit>().addNote(
+                    uid, nameController.text, '', parentFolderId ?? 'Root', [], [], []
+                );
+                Navigator.of(ctx).pop();
+              }
+            },
+          ),
+          // Add Folder
+          ElevatedButton.icon(
+            icon: const Icon(Icons.folder),
+            label: const Text('Folder'),
+            onPressed: () {
+              if (nameController.text.isNotEmpty) {
+                context.read<FolderCubit>().createSubFolder(
+                    uid, nameController.text, parentFolderId ?? 'Root'
+                );
+                Navigator.of(ctx).pop();
               }
             },
           ),
@@ -122,56 +142,60 @@ class _FolderScreenState extends State<FolderScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: Text(folderName),
         centerTitle: true,
         actions: [
-          // DEFINITIVE FIX: Using a real icon that exists
-          IconButton(icon: const Icon(Icons.create_new_folder_outlined), onPressed: _showCreateFolderDialog, tooltip: 'Create Folder'),
-          IconButton(icon: const Icon(Icons.note_add), onPressed: _createNewNote, tooltip: 'Create Note'),
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchData, tooltip: 'Refresh Data'),
+          IconButton(
+              icon: const Icon(Icons.add_circle),
+              onPressed: () => _showCreateDialog(context),
+              tooltip: 'Create'
+          ),
         ],
       ),
       body: BlocBuilder<FolderCubit, FolderState>(
-        builder: (context, folderState) {
-          return BlocBuilder<NoteCubit, NoteState>(
-            builder: (context, noteState) {
-              if (folderState is FolderLoading || noteState is NoteLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (folderState is FolderFailure) {
-                return Center(child: Text('Error: ${folderState.message}'));
-              }
-              if (noteState is NoteFailure) {
-                return Center(child: Text('Error: ${noteState.message}'));
-              }
-              if (folderState is FolderLoaded && noteState is NoteLoaded) {
-                final List<dynamic> combinedItems = [
-                  ...folderState.folders,
-                  ...noteState.notes,
-                ];
+        builder: (context, state) {
+          if (state is FolderLoading) return const Center(child: CircularProgressIndicator());
+          if (state is FolderFailure) return Center(child: Text('Error: ${state.message}'));
 
-                if (combinedItems.isEmpty) {
-                  return const Center(child: Text('This folder is empty.'));
+          // Hứng State Grouped
+          if (state is FolderGroupedLoaded) {
+            // Lấy item từ Map theo ID
+            final items = state.groupedData[parentFolderId] ?? [];
+
+            if (items.isEmpty) return const Center(child: Text("Empty Folder"));
+
+            return ListView.builder(
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
+
+                if (item is Folder) {
+                  return ListTile(
+                    leading: const Icon(Icons.folder),
+                    title: Text(item.name ?? ""),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                    onTap: () => _navigateToSubFolder(context, item),
+                  );
+                } else if (item is Note) {
+                  return ListTile(
+                    leading: const Icon(Icons.description),
+                    title: Text(item.title ?? ""),
+                    subtitle: Text(
+                      item.createdAt != null
+                          ? "Created: ${item.createdAt.toString().split(' ')[0]}"
+                          : "",
+                      style: const TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
+                    // [ĐÃ SỬA] Gọi hàm mở Editor khi bấm vào Note
+                    onTap: () => _openNoteEditor(context, item),
+                  );
                 }
+                return const SizedBox.shrink();
+              },
+            );
+          }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(8.0),
-                  itemCount: combinedItems.length,
-                  itemBuilder: (context, index) {
-                    final item = combinedItems[index];
-                    if (item is Folder) {
-                      return Card(child: ListTile(leading: const Icon(Icons.folder), title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)), onTap: () => _navigateToSubFolder(item), trailing: IconButton(icon: const Icon(Icons.edit), onPressed: () => _showRenameDialog(item))));
-                    }
-                    if (item is Note) {
-                      return Card(child: ListTile(leading: const Icon(Icons.description), title: Text(item.title), onTap: () => _openNoteEditor(item), trailing: IconButton(icon: const Icon(Icons.edit), onPressed: () => _showRenameDialog(item))));
-                    }
-                    return const SizedBox.shrink();
-                  },
-                );
-              }
-              return const Center(child: Text("Press refresh to load data"));
-            },
-          );
+          return const SizedBox.shrink();
         },
       ),
     );

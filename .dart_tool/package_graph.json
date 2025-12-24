@@ -21,6 +21,7 @@
         "google_fonts",
         "image_picker",
         "intl",
+        "rxdart",
         "shared_preferences",
         "url_launcher"
       ],
@@ -53,6 +54,11 @@
         "test_api",
         "vector_math"
       ]
+    },
+    {
+      "name": "rxdart",
+      "version": "0.28.0",
+      "dependencies": []
     },
     {
       "name": "intl",
@@ -1139,11 +1145,6 @@
         "sqflite_darwin",
         "sqflite_platform_interface"
       ]
-    },
-    {
-      "name": "rxdart",
-      "version": "0.28.0",
-      "dependencies": []
     },
     {
       "name": "nested",

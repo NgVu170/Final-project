@@ -51,7 +51,7 @@ class NoteAppUsingPara extends StatelessWidget{
             BlocProvider(create: (_) => ThemeCubit()),
             BlocProvider(create: (_) => AuthCubit(authRepo,folderRepo)),
             BlocProvider(create: (_) => AppUserCubit(appUserRepo)),
-            BlocProvider(create: (_) => FolderCubit(folderRepo)),
+            BlocProvider(create: (_) => FolderCubit(folderRepo, noteRepo)),
             BlocProvider(create: (_) => NoteCubit(noteRepo)),
           ],
           child: const AppContent(),

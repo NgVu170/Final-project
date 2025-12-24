@@ -5,7 +5,7 @@ import 'package:flutter_quill/flutter_quill.dart' hide Text;
 import 'package:image_picker/image_picker.dart';
 import '../../../Data/Model/note.dart';
 import '../../../Logic/Note/note_cubit.dart';
-import '../../Widgets/custom_quill_toolbar.dart'; // Import the new custom toolbar
+import '../../Widgets/custom_quill_toolbar.dart';
 
 class NoteEditorScreen extends StatefulWidget {
   final Note? note;
@@ -16,7 +16,7 @@ class NoteEditorScreen extends StatefulWidget {
     super.key, 
     this.note,
     required this.uid,
-    this.parentFolderId = 'Root',
+    this.parentFolderId = 'Project',
   });
 
   @override
@@ -56,15 +56,33 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     }
   }
 
+  // DEFINITIVE FIX: The save method now correctly handles new and existing images.
   void _saveNote() {
     final jsonContent = jsonEncode(_controller.document.toDelta().toJson());
     final title = _titleController.text.isEmpty ? "Untitled Note" : _titleController.text;
 
+    // Extract image paths from the document
+    final List<String> allImagePaths = _controller.document.toDelta().operations
+        .where((op) => op.isInsert && op.value is Map && (op.value as Map).containsKey('image'))
+        .map((op) => (op.value as Map)['image'] as String)
+        .toList();
+
     if (_isEditing) {
-      final updatedNote = widget.note!.copyWith(title: title, content: jsonContent);
-      context.read<NoteCubit>().updateNote(widget.uid, updatedNote);
+      // Separate new local paths from existing cloud URLs
+      final List<String> newImagePaths = allImagePaths.where((path) => !path.startsWith('http')).toList();
+      final List<String> existingImageUrls = allImagePaths.where((path) => path.startsWith('http')).toList();
+
+      final updatedNote = widget.note!.copyWith(
+        title: title,
+        content: jsonContent,
+        imageUrls: existingImageUrls, // Pass only the existing URLs
+      );
+      // Call the updated method with the list of new paths to upload
+      context.read<NoteCubit>().updateNote(widget.uid, updatedNote, newImagePaths);
+
     } else {
-      context.read<NoteCubit>().addNote(widget.uid, title, jsonContent, widget.parentFolderId, [], [], []);
+      // For a new note, all image paths are new
+      context.read<NoteCubit>().addNote(widget.uid, title, jsonContent, widget.parentFolderId, [], allImagePaths, []);
     }
     
     ScaffoldMessenger.of(context).showSnackBar(
@@ -92,7 +110,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
   
   void _insertLink() {
-     // This is a simplified version. A real implementation would show a dialog.
     _controller.document.format(_controller.selection.start, 0, LinkAttribute('https://example.com'));
   }
 
@@ -106,9 +123,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // DEFINITIVE FIX: Removed the garbage if-statement that I invented.
-    // initState is guaranteed to finish before build is called.
-    
     return Scaffold(
       appBar: AppBar(
         elevation: 1,

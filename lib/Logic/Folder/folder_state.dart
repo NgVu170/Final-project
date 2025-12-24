@@ -27,3 +27,13 @@ class FolderLoaded extends FolderState {
   @override
   List<Object> get props => [folders];
 }
+
+class FolderGroupedLoaded extends FolderState {
+  // Key: ParentFolderId (có thể null), Value: List các item con (Folder và Note)
+  final Map<String?, List<dynamic>> groupedData;
+
+  const FolderGroupedLoaded(this.groupedData);
+
+  @override
+  List<Object> get props => [groupedData];
+}

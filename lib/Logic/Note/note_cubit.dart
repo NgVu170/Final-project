@@ -78,17 +78,6 @@ class NoteCubit extends Cubit<NoteState> {
     });
   }
 
-  void fetchNotesInFolder(String userId, String folderId) {
-    emit(NoteLoading());
-    _noteSub?.cancel();
-    _noteSub = _repo.getNotesInFolderStream(userId, folderId).listen((notes) {
-      _allNotes = notes;
-      emit(NoteLoaded(notes));
-    }, onError: (e) {
-      emit(NoteFailure(e.toString()));
-    });
-  }
-
   void searchNotes(String query, SearchType type, bool isDescending) {
     List<Note> filteredNotes;
     if (query.isEmpty) {
@@ -132,7 +121,7 @@ class NoteCubit extends Cubit<NoteState> {
         title: title,
         content: content,
         createdAt: DateTime.now(),
-        parentFolderId: parentFolderId ?? 'Root',
+        parentFolderId: parentFolderId ?? 'Projects',
         tags: cleanTags,
         imageUrls: cloudUrls,
         urlLinks: cleanLinks,
@@ -161,10 +150,10 @@ class NoteCubit extends Cubit<NoteState> {
     }
   }
 
-  Future<void> updateNote(String userId, Note note) async {
+  Future<void> updateNote(String userId, Note note, List<String>? newImagePaths) async {
     try {
       final cleanTags = _processTags(note.tags);
-      final cleanLinks = _processLinks(note.urlLinks);
+      final cleanLinks = _processLinks(newImagePaths ?? note.urlLinks);
       final updatedNote = note.copyWith(
         tags: cleanTags,
         urlLinks: cleanLinks,

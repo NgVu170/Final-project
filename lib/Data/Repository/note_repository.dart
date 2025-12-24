@@ -6,21 +6,11 @@ class NoteRepository {
   Stream<List<Note>> getNoteStream(String userId){
     return FirestoreHelper
         .noteRef(userId)
-        .orderBy('createdAt', descending: true)
+        .orderBy('dateCreated', descending: true)
         .snapshots()
         .map((snapshot){
-          return snapshot.docs.map((doc) => Note.fromFirestore(doc)).toList();
+      return snapshot.docs.map((doc) => doc.data()).toList();
     });
-  }
-
-  // FIX: ADDED THE MISSING METHOD
-  Stream<List<Note>> getNotesInFolderStream(String userId, String folderId) {
-    return FirestoreHelper
-        .noteRef(userId)
-        .where('parentFolderId', isEqualTo: folderId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
   }
 
   Future<void> addNote(String userId, Note newNote) async{
@@ -39,13 +29,19 @@ class NoteRepository {
     }
   }
 
-  Future<void> updateNote(String userId, Note updatedNote) async{
-    try{
-      if (updatedNote.id!.isNotEmpty) return;
+  Future<void> updateNote(String userId, Note updatedNote) async {
+    try {
+      // FIX: Chỉ chặn nếu ID bị null hoặc rỗng
+      if (updatedNote.id == null || updatedNote.id!.isEmpty) {
+        throw Exception("Cannot update note without ID");
+      }
+
       await FirestoreHelper.noteRef(userId)
           .doc(updatedNote.id)
           .set(updatedNote, SetOptions(merge: true));
-    } catch (e){
+
+      print("[REPO] Note updated: ${updatedNote.id}");
+    } catch (e) {
       throw Exception("[ERROR] Updating note: $e");
     }
   }
