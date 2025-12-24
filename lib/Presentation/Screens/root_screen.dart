@@ -1,74 +1,52 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart';
-import 'package:note_app_using_para/Presentation/Screens/AppUser/home_screen.dart';
-import 'package:note_app_using_para/Presentation/Screens/Profile/profile_screen.dart';
+import 'package:note_app_using_para/Presentation/Widgets/navBar.dart';
+import 'AppUser/home_screen.dart';
+import 'Profile/profile_screen.dart';
+import 'Editor/note_editor_screen.dart';
 import 'Folder/folder_screen.dart';
 
-class RootScreen extends StatelessWidget {
+class RootScreen extends StatefulWidget {
   final String uid;
   const RootScreen({super.key, required this.uid});
 
   @override
+  State<RootScreen> createState() => _RootScreenState();
+}
+
+class _RootScreenState extends State<RootScreen> {
+  int _currentIndex = 0;
+
+  void _onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final List<Widget> _pages = [
+      // 0: Home Page
+      const HomeScreen(uid: '', controller: null, focusNode: null, onSave: null),
+      
+      // 1: New Note Page
+      NoteEditorScreen(uid: widget.uid, parentFolderId: 'Root'),
+      
+      // 2: Folder Page
+      FolderScreen(uid: widget.uid),
+      
+      // 3: Profile Page
+      ProfileScreen(uid: widget.uid),
+    ];
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Logic Debug'),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('UI has been temporarily removed to focus on logic.\nUser ID: $uid'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    // FIX: Removed the onNoteSelected parameter which no longer exists
-                    builder: (context) => FolderScreen(
-                      uid: uid,
-                    ),
-                  ),
-                );
-              },
-              child: const Text('Go to Folder Screen'),
-            ),
-            const SizedBox(height: 5),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => HomeScreen(
-                      uid: uid,
-                      controller: QuillController.basic(),
-                      focusNode: FocusNode(),
-                      onSave: () {
-                        debugPrint("Save button pressed");
-                      },
-                    ),
-                  ),
-                );
-              },
-              child: const Text('Go to Home Screen'),
-            ),
-            const SizedBox(height: 5),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProfileScreen(
-                      uid: uid,
-                    ),
-                  ),
-                );
-              },
-              child: const Text('Go to Profile Screen'),
-            ),
-          ],
-        ),
+      // DEFINITIVE FIX: Using your CustomNavBar as you intended.
+      bottomNavigationBar: CustomNavBar(
+        currentIndex: _currentIndex,
+        onTap: _onTabTapped,
       ),
     );
   }

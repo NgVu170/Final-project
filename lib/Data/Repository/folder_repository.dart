@@ -8,8 +8,6 @@ class FolderRepository {
         .folderRef(userId)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        // FIX: The .withConverter in the helper already returns Folder objects.
-        // We just need to get the data, not convert it again.
         .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
   }
 
@@ -18,7 +16,6 @@ class FolderRepository {
         .where('parentFolderId', isEqualTo: parentId)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        // FIX: Applied the same correction here.
         .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
   }
 
