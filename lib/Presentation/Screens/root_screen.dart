@@ -25,16 +25,14 @@ class RootScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
+                    // FIX: Removed the onNoteSelected parameter which no longer exists
                     builder: (context) => FolderScreen(
                       uid: uid,
-                      onNoteSelected: (note) {
-                        debugPrint("Note selected: ${note.title}");
-                      },
                     ),
                   ),
                 );
               },
-              child: const Text('Test Search Bar on Folder Screen'),
+              child: const Text('Go to Folder Screen'),
             ),
             const SizedBox(height: 5),
             ElevatedButton(
@@ -44,7 +42,6 @@ class RootScreen extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (context) => HomeScreen(
                       uid: uid,
-                      // Provide dummy values for the required parameters
                       controller: QuillController.basic(),
                       focusNode: FocusNode(),
                       onSave: () {

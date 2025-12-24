@@ -13,6 +13,16 @@ class NoteRepository {
     });
   }
 
+  // FIX: ADDED THE MISSING METHOD
+  Stream<List<Note>> getNotesInFolderStream(String userId, String folderId) {
+    return FirestoreHelper
+        .noteRef(userId)
+        .where('parentFolderId', isEqualTo: folderId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+  }
+
   Future<void> addNote(String userId, Note newNote) async{
     try{
       await FirestoreHelper.noteRef(userId).add(newNote);

@@ -8,7 +8,8 @@ class FolderRepository {
         .folderRef(userId)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        // FIX: The .withConverter already returns Folder objects. We just need to get them.
+        // FIX: The .withConverter in the helper already returns Folder objects.
+        // We just need to get the data, not convert it again.
         .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
   }
 
@@ -17,7 +18,7 @@ class FolderRepository {
         .where('parentFolderId', isEqualTo: parentId)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        // FIX: Apply the same correction here.
+        // FIX: Applied the same correction here.
         .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
   }
 
@@ -29,8 +30,7 @@ class FolderRepository {
     if (subFolderSnapshot.docs.isNotEmpty) return true;
     final noteSnapshot = await FirestoreHelper.noteRef(userId)
         .where('parentFolderId', isEqualTo: folderId)
-        .limit(1)
-        .get();
+        .limit(1).get();
     return noteSnapshot.docs.isNotEmpty;
   }
 

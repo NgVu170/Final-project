@@ -12,15 +12,13 @@ import '../../../Core/Constants/SearchBar/search_type.dart';
 part 'note_state.dart';
 
 class NoteCubit extends Cubit<NoteState> {
-  //region Attribute and constructor
   final NoteRepository _repo;
   StreamSubscription? _noteSub;
   List<Note> _allNotes = [];
 
   NoteCubit(this._repo) : super(NoteInitial());
-  //endregion
 
-  //region Helper
+  // --- HELPER METHODS (RESTORED) ---
   String _plainTextFromContent(String contentJson) {
     if (contentJson.isEmpty) return "";
     try {
@@ -36,61 +34,63 @@ class NoteCubit extends Cubit<NoteState> {
       }
       return buffer.toString();
     } catch (e) {
-      return contentJson; // Not a valid delta, return as is.
+      return contentJson;
     }
   }
 
-  Future<List<String>> _uploadImgToFirebase(String userId, List<String> paths) async{
+  Future<List<String>> _uploadImgToFirebase(String userId, List<String> paths) async {
     List<String> downloadUrls = [];
     final storageRef = FirebaseStorage.instance.ref();
-    for(var path in paths){
-     File file = File(path);
-     String fileName = "${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}";
-     final imgRef = storageRef.child("users/$userId/uploads/$fileName");
-     try{
-       await imgRef.putFile(file);
-       String url = await imgRef.getDownloadURL();
-       downloadUrls.add(url);
-     } catch (e) {
-       emit(NoteFailure("[ERROR] Uploading img: ${e.toString()}"));
-     }
+    for (var path in paths) {
+      File file = File(path);
+      String fileName = "${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}";
+      final imgRef = storageRef.child("users/$userId/uploads/$fileName");
+      try {
+        await imgRef.putFile(file);
+        String url = await imgRef.getDownloadURL();
+        downloadUrls.add(url);
+      } catch (e) {
+        emit(NoteFailure("[ERROR] Uploading img: ${e.toString()}"));
+      }
     }
     return downloadUrls;
   }
 
   List<String> _processTags(List<String>? tags) {
     if (tags == null) return [];
-    return tags
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toSet()
-        .toList();
+    return tags.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet().toList();
   }
 
   List<String> _processLinks(List<String>? links) {
     if (links == null) return [];
-    return links
-        .map((e) => e.trim())
-        .where((e) => Uri.tryParse(e)?.hasAbsolutePath ?? false)
-        .toList();
+    return links.map((e) => e.trim()).where((e) => Uri.tryParse(e)?.hasAbsolutePath ?? false).toList();
   }
-  //endregion
-
-  //region Methods
-  void fetchNotes(String userId){
-    emit(NoteLoading()); //loading
-    _noteSub?.cancel(); //delete the previous stream
-    _noteSub = _repo.getNoteStream(userId).listen((notes){
+  
+  // --- FETCH AND SEARCH METHODS ---
+  void fetchNotes(String userId) {
+    emit(NoteLoading());
+    _noteSub?.cancel();
+    _noteSub = _repo.getNoteStream(userId).listen((notes) {
       _allNotes = notes;
       emit(NoteLoaded(notes));
-    }, onError: (e){
+    }, onError: (e) {
+      emit(NoteFailure(e.toString()));
+    });
+  }
+
+  void fetchNotesInFolder(String userId, String folderId) {
+    emit(NoteLoading());
+    _noteSub?.cancel();
+    _noteSub = _repo.getNotesInFolderStream(userId, folderId).listen((notes) {
+      _allNotes = notes;
+      emit(NoteLoaded(notes));
+    }, onError: (e) {
       emit(NoteFailure(e.toString()));
     });
   }
 
   void searchNotes(String query, SearchType type, bool isDescending) {
     List<Note> filteredNotes;
-
     if (query.isEmpty) {
       filteredNotes = List<Note>.from(_allNotes);
     } else {
@@ -99,21 +99,13 @@ class NoteCubit extends Cubit<NoteState> {
         switch (type) {
           case SearchType.content:
             final plainTextContent = _plainTextFromContent(note.content);
-            return note.title.toLowerCase().contains(q) ||
-                   plainTextContent.toLowerCase().contains(q);
+            return note.title.toLowerCase().contains(q) || plainTextContent.toLowerCase().contains(q);
           case SearchType.tags:
             return note.tags.any((tag) => tag.toLowerCase().contains(q));
           case SearchType.links:
             return note.urlLinks?.any((link) => link.toLowerCase().contains(q)) ?? false;
-          case SearchType.notes:
-            // TODO: Handle this case.
-            throw UnimplementedError();
-          case SearchType.created:
-            // TODO: Handle this case.
-            throw UnimplementedError();
-          case SearchType.modified:
-            // TODO: Handle this case.
-            throw UnimplementedError();
+          default:
+            return false;
         }
       }).toList();
     }
@@ -123,57 +115,42 @@ class NoteCubit extends Cubit<NoteState> {
       final dateB = b.updatedAt ?? b.createdAt;
       return isDescending ? dateB.compareTo(dateA) : dateA.compareTo(dateB);
     });
-
     emit(NoteLoaded(filteredNotes));
   }
 
-  void clearSearch() {
-    emit(NoteLoaded(_allNotes));
-  }
-
-  // --- ADD NOTE ---
-  Future<void> addNote (String userId, String title, String content,
-      String? parentFolderId,
-      List<String>? tags,
-      List<String>? localImagePath,
-      List<String>? urlLinks) async{
-    try{
-      emit(NoteLoading());
+  // --- CRUD METHODS (RESTORED AND FIXED) ---
+  Future<void> addNote(String userId, String title, String content, String? parentFolderId, List<String>? tags, List<String>? localImagePath, List<String>? urlLinks) async {
+    try {
       List<String> cloudUrls = [];
-
       if (localImagePath != null && localImagePath.isNotEmpty) {
         cloudUrls = await _uploadImgToFirebase(userId, localImagePath);
       }
-
-      // TODO: Extract tags and links from content
       final cleanTags = _processTags(tags);
       final cleanLinks = _processLinks(urlLinks);
-
       final note = Note(
         userId: userId,
         title: title,
         content: content,
         createdAt: DateTime.now(),
-        parentFolderId: parentFolderId ?? 'Storage',
-        isCompleted: false,
+        parentFolderId: parentFolderId ?? 'Root',
         tags: cleanTags,
         imageUrls: cloudUrls,
         urlLinks: cleanLinks,
       );
       await _repo.addNote(userId, note);
+      // FIX: After adding, the stream will update automatically. No need to call fetch again.
     } catch (e) {
       emit(NoteFailure("[ERROR] Create note: ${e.toString()}"));
     }
   }
 
-  // --- DELETE NOTE ---
-  Future<void> deleteNote(String userId, Note noteSelected) async{
-    try{
+  Future<void> deleteNote(String userId, Note noteSelected) async {
+    try {
       if (noteSelected.imageUrls != null) {
-        for (String url in noteSelected.imageUrls! ) {
-          try{
+        for (String url in noteSelected.imageUrls!) {
+          try {
             await FirebaseStorage.instance.refFromURL(url).delete();
-          } catch (e){
+          } catch (e) {
             emit(NoteFailure("[ERROR] Delete image $url note: ${e.toString()}"));
           }
         }
@@ -184,10 +161,8 @@ class NoteCubit extends Cubit<NoteState> {
     }
   }
 
-  // --- UPDATED NOTE ---
-  Future<void> updateNote(String userId, Note note) async{
-    try{
-      // TODO: Extract tags and links from content before updating
+  Future<void> updateNote(String userId, Note note) async {
+    try {
       final cleanTags = _processTags(note.tags);
       final cleanLinks = _processLinks(note.urlLinks);
       final updatedNote = note.copyWith(
@@ -201,19 +176,17 @@ class NoteCubit extends Cubit<NoteState> {
     }
   }
 
-  // --- MOVE NOTE ---
-  Future<void> moveNote (String userId, Note note, String newFolderId) async{
-    try{
+  Future<void> moveNote(String userId, Note note, String newFolderId) async {
+    try {
       final updatedNote = note.copyWith(parentFolderId: newFolderId);
       await _repo.updateNote(userId, updatedNote);
     } catch (e) {
       emit(NoteFailure("[ERROR] Move note: $e"));
     }
   }
-  //endregion
 
   @override
-  Future<void> close(){
+  Future<void> close() {
     _noteSub?.cancel();
     return super.close();
   }
