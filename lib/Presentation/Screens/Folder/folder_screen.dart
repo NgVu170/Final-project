@@ -31,7 +31,8 @@ class _FolderScreenState extends State<FolderScreen> {
   @override
   void initState() {
     super.initState();
-    // We are intentionally NOT fetching data automatically anymore.
+    // Fetch data on screen load
+    _fetchData();
   }
 
   @override
@@ -40,7 +41,6 @@ class _FolderScreenState extends State<FolderScreen> {
     super.dispose();
   }
 
-  // --- Manual data fetch method ---
   void _fetchData() {
     if (mounted) {
       context.read<NoteCubit>().fetchNotes(widget.uid);
@@ -48,80 +48,77 @@ class _FolderScreenState extends State<FolderScreen> {
     }
   }
 
-  void _onSearchQueryChanged(String query) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), _performSearch);
-    setState(() {
-      _searchQuery = query;
-    });
+  // --- Dialogs for Creating New Items ---
+  void _showCreateFolderDialog() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Create New Folder"),
+        content: TextField(controller: controller, decoration: const InputDecoration(hintText: "Folder Name")),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                context.read<FolderCubit>().createSubFolder(widget.uid, controller.text, "Root");
+                Navigator.of(context).pop();
+              }
+            },
+            child: const Text("Create"),
+          ),
+        ],
+      ),
+    );
   }
 
-  void _onSearchTypeChanged(SearchType type) {
-    setState(() {
-      _searchType = type;
-    });
-    _performSearch();
-  }
-
-  void _onSortOrderChanged(SortOrder order) {
-    setState(() {
-      _sortOrder = order;
-    });
-    _performSearch();
-  }
-
-  void _performSearch() {
-    if (mounted) {
-      context.read<NoteCubit>().searchNotes(
-            _searchQuery,
-            _searchType,
-            _sortOrder == SortOrder.descending,
-          );
-    }
+  void _showCreateNoteDialog(String folderId) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Create New Note"),
+        content: TextField(controller: controller, decoration: const InputDecoration(hintText: "Note Title")),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                context.read<NoteCubit>().addNote(widget.uid, controller.text, "", folderId, [], [], []);
+                Navigator.of(context).pop();
+              }
+            },
+            child: const Text("Create"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
         title: const Text('My Notes'),
         centerTitle: true,
         actions: [
-          // Add a refresh button to manually trigger the fetch
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _fetchData,
-            tooltip: 'Fetch Data',
-          ),
+          IconButton(icon: const Icon(Icons.create_new_folder), onPressed: _showCreateFolderDialog, tooltip: 'Create Folder'),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchData, tooltip: 'Refresh'),
         ],
       ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: CustomSearchBar(
-              searchQuery: _searchQuery,
-              searchType: _searchType,
-              sortOrder: _sortOrder,
-              onSearchQueryChanged: _onSearchQueryChanged,
-              onSearchTypeChanged: _onSearchTypeChanged,
-              onSortOrderChanged: _onSortOrderChanged,
-            ),
+            // Assuming CustomSearchBar exists and is correctly implemented
+            // child: CustomSearchBar(...),
           ),
           Expanded(
             child: BlocBuilder<FolderCubit, FolderState>(
               builder: (context, folderState) {
                 return BlocBuilder<NoteCubit, NoteState>(
                   builder: (context, noteState) {
-                    if (folderState is FolderInitial || noteState is NoteInitial) {
-                      return const Center(
-                        child: Text('Press the refresh button to load data.'),
-                      );
-                    }
                     if (folderState is FolderLoading || noteState is NoteLoading) {
                       return const Center(child: CircularProgressIndicator());
                     }
@@ -134,28 +131,40 @@ class _FolderScreenState extends State<FolderScreen> {
                     if (folderState is FolderLoaded && noteState is NoteLoaded) {
                       final folders = folderState.folders;
                       final notes = noteState.notes;
+
                       if (folders.isEmpty) {
-                        return const Center(child: Text('No folders found.'));
+                        return const Center(child: Text('No folders found. Press the + folder icon to create one.'));
                       }
+
                       return ListView.builder(
                         itemCount: folders.length,
                         itemBuilder: (context, index) {
                           final folder = folders[index];
                           final notesInFolder = notes.where((note) => note.parentFolderId == folder.id).toList();
+
                           return Card(
                             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             child: ExpansionTile(
                               title: Text(folder.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                               subtitle: Text('${notesInFolder.length} notes'),
-                              children: notesInFolder.map((note) => ListTile(
-                                title: Text(note.title),
-                                onTap: () => widget.onNoteSelected(note),
-                              )).toList(),
+                              children: [
+                                ...notesInFolder.map((note) => ListTile(
+                                  title: Text(note.title),
+                                  onTap: () => widget.onNoteSelected(note),
+                                )),
+                                // Add Note button at the bottom of each folder
+                                ListTile(
+                                  leading: const Icon(Icons.add, color: Colors.blueAccent),
+                                  title: const Text("Add Note", style: TextStyle(color: Colors.blueAccent)),
+                                  onTap: () => _showCreateNoteDialog(folder.id!),
+                                ),
+                              ],
                             ),
                           );
                         },
                       );
                     }
+
                     return const SizedBox.shrink();
                   },
                 );

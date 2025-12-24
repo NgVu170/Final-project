@@ -66,7 +66,9 @@ class Folder{
       name: data['name'] ?? 'New Folder',
       type: data['type'] ?? 'Storage',
       isSystem: data['isSystem'] ?? false,
-      createdAt: (data['dateCreated'] as Timestamp).toDate(),
+      createdAt: data['dateCreated'] != null
+          ? (data['dateCreated'] as Timestamp).toDate()
+          : DateTime.now(), // Provide a fallback value
       updatedAt: data['dateModified'] != null
           ? (data['dateModified'] as Timestamp).toDate()
           : null,
@@ -76,7 +78,8 @@ class Folder{
   }
 
   //To JSON Dart -> Firestore
-  Map<String,dynamic> toFireStore(){
+  // FIX: Corrected method name to camelCase to match convention and helper
+  Map<String,dynamic> toFirestore(){
     return{
       "userId": userId,
       "parentFolderId": parentFolderId,

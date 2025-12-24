@@ -13,7 +13,7 @@ class FirestoreHelper {
       .collection('folders')
       .withConverter<Folder>(
         fromFirestore: (snapshot, _) => Folder.fromFirestore(snapshot),
-        toFirestore: (snapshot,_) => snapshot.toFireStore(),
+        toFirestore: (snapshot,_) => snapshot.toFirestore(),
       );
   }
   //Profile reference
