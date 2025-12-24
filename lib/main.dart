@@ -81,7 +81,13 @@ class AppContent extends StatelessWidget{
 
               home: BlocConsumer<AuthCubit, AuthState>(
                 listener: (context, state) {
-                  if (state is Unauthenticated) {
+                  // The listener is the perfect place to handle navigation events
+                  if (state is Authenticated) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (context) => RootScreen(uid: state.user.uid)),
+                      (route) => false,
+                    );
+                  } else if (state is Unauthenticated) {
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(builder: (context) => const LoginScreen()),
                       (route) => false,
@@ -89,10 +95,11 @@ class AppContent extends StatelessWidget{
                   }
                 },
                 builder: (context, authState) {
-                  if (authState is Authenticated) {
-                    return RootScreen(uid: authState.user.uid);
-                  }
-                  return const LoginScreen();
+                  // The builder should just return a placeholder or an initial screen.
+                  // The listener will handle all navigation.
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
                 },
               ),
           );

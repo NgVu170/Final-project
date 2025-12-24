@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../Core/Constants/SearchBar/search_type.dart';
 import '../../../Data/Model/note.dart';
+import '../../../Data/Model/folder.dart';
+import '../../../Logic/Folder/folder_cubit.dart';
 import '../../../Logic/Note/note_cubit.dart';
 import '../../Widgets/searchBar.dart';
 
@@ -21,10 +23,7 @@ class FolderScreen extends StatefulWidget {
 }
 
 class _FolderScreenState extends State<FolderScreen> {
-  // Debouncer timer
   Timer? _debounce;
-
-  // State for the search bar
   String _searchQuery = '';
   SearchType _searchType = SearchType.content;
   SortOrder _sortOrder = SortOrder.ascending;
@@ -32,23 +31,26 @@ class _FolderScreenState extends State<FolderScreen> {
   @override
   void initState() {
     super.initState();
-    // Initial data fetch
-    context.read<NoteCubit>().fetchNotes(widget.uid);
+    // We are intentionally NOT fetching data automatically anymore.
   }
 
   @override
   void dispose() {
-    // Cancel the timer when the widget is disposed to prevent memory leaks
     _debounce?.cancel();
     super.dispose();
   }
 
-  // --- Callback Methods for the Search Bar ---
+  // --- Manual data fetch method ---
+  void _fetchData() {
+    if (mounted) {
+      context.read<NoteCubit>().fetchNotes(widget.uid);
+      context.read<FolderCubit>().fetchFolders(widget.uid);
+    }
+  }
+
   void _onSearchQueryChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      _performSearch();
-    });
+    _debounce = Timer(const Duration(milliseconds: 500), _performSearch);
     setState(() {
       _searchQuery = query;
     });
@@ -70,11 +72,11 @@ class _FolderScreenState extends State<FolderScreen> {
 
   void _performSearch() {
     if (mounted) {
-       context.read<NoteCubit>().searchNotes(
-        _searchQuery,
-        _searchType,
-        _sortOrder == SortOrder.descending,
-      );
+      context.read<NoteCubit>().searchNotes(
+            _searchQuery,
+            _searchType,
+            _sortOrder == SortOrder.descending,
+          );
     }
   }
 
@@ -82,16 +84,20 @@ class _FolderScreenState extends State<FolderScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // FIX: Add a leading back button to the AppBar
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            // Use Navigator.pop to go back to the previous screen (RootScreen)
-            Navigator.of(context).pop();
-          },
+          onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text('My Notes'),
         centerTitle: true,
+        actions: [
+          // Add a refresh button to manually trigger the fetch
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchData,
+            tooltip: 'Fetch Data',
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -107,43 +113,55 @@ class _FolderScreenState extends State<FolderScreen> {
             ),
           ),
           Expanded(
-            child: BlocBuilder<NoteCubit, NoteState>(
-              builder: (context, state) {
-                if (state is NoteLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (state is NoteLoaded) {
-                  final notes = state.notes;
-                  if (notes.isEmpty) {
-                    return const Center(child: Text('No notes found.'));
-                  }
-                  return ListView.builder(
-                    itemCount: notes.length,
-                    itemBuilder: (context, index) {
-                      final note = notes[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        child: ListTile(
-                          title: Text(note.title),
-                          subtitle: Text(
-                            note.content,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          onTap: () => widget.onNoteSelected(note),
-                        ),
+            child: BlocBuilder<FolderCubit, FolderState>(
+              builder: (context, folderState) {
+                return BlocBuilder<NoteCubit, NoteState>(
+                  builder: (context, noteState) {
+                    if (folderState is FolderInitial || noteState is NoteInitial) {
+                      return const Center(
+                        child: Text('Press the refresh button to load data.'),
                       );
-                    },
-                  );
-                }
-                if (state is NoteFailure) {
-                  return Center(child: Text('Error: ${state.message}'));
-                }
-                return const Center(child: Text('Select a folder to see your notes.'));
+                    }
+                    if (folderState is FolderLoading || noteState is NoteLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (folderState is FolderFailure) {
+                      return Center(child: Text('Error loading folders: ${folderState.message}'));
+                    }
+                    if (noteState is NoteFailure) {
+                      return Center(child: Text('Error loading notes: ${noteState.message}'));
+                    }
+                    if (folderState is FolderLoaded && noteState is NoteLoaded) {
+                      final folders = folderState.folders;
+                      final notes = noteState.notes;
+                      if (folders.isEmpty) {
+                        return const Center(child: Text('No folders found.'));
+                      }
+                      return ListView.builder(
+                        itemCount: folders.length,
+                        itemBuilder: (context, index) {
+                          final folder = folders[index];
+                          final notesInFolder = notes.where((note) => note.parentFolderId == folder.id).toList();
+                          return Card(
+                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            child: ExpansionTile(
+                              title: Text(folder.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text('${notesInFolder.length} notes'),
+                              children: notesInFolder.map((note) => ListTile(
+                                title: Text(note.title),
+                                onTap: () => widget.onNoteSelected(note),
+                              )).toList(),
+                            ),
+                          );
+                        },
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                );
               },
             ),
           ),
-          // FIX: Removed the incorrect button from the bottom
         ],
       ),
     );

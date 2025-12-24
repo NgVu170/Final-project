@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide TextField;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../Logic/Authentication/auth_cubit.dart';
+import '../root_screen.dart';
 import 'TextField.dart';
 import 'signup_screen.dart';
 
@@ -20,7 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. LẤY BẢNG MÀU TỪ THEME RA
     final colorScheme = Theme.of(context).colorScheme;
 
     return BlocListener<AuthCubit, AuthState>(
@@ -28,6 +28,13 @@ class _LoginScreenState extends State<LoginScreen> {
         if (state is AuthFailure) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: colorScheme.error),
+          );
+        } else if (state is Authenticated) {
+          // FIX: When login is successful, navigate to the RootScreen
+          // and clear the navigation stack.
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => RootScreen(uid: state.user.uid)),
+            (route) => false, // This removes all previous routes
           );
         }
       },
@@ -50,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: GoogleFonts.poppins(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface, // Chữ tự đổi màu tương phản với nền
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   Text(
@@ -59,7 +66,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: GoogleFonts.poppins(fontSize: 14, color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 40),
-
                   TextField(
                     controller: _emailController,
                     hintText: "Email Address",
@@ -67,7 +73,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     validator: (v) => v!.isEmpty ? "Required" : null,
                   ),
                   const SizedBox(height: 16),
-
                   TextField(
                     controller: _passwordController,
                     hintText: "Password",
@@ -78,23 +83,23 @@ class _LoginScreenState extends State<LoginScreen> {
                     validator: (v) => v!.length < 6 ? "Min 6 chars" : null,
                   ),
                   const SizedBox(height: 24),
-
                   BlocBuilder<AuthCubit, AuthState>(
                     builder: (context, state) {
-                      if (state is AuthLoading) return const Center(child: CircularProgressIndicator());
-
+                      if (state is AuthLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
                       return ElevatedButton(
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
                             context.read<AuthCubit>().logIn(
-                              _emailController.text.trim(),
-                              _passwordController.text.trim(),
-                            );
+                                  _emailController.text.trim(),
+                                  _passwordController.text.trim(),
+                                );
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: colorScheme.primary, // Màu chính của Theme
-                          foregroundColor: colorScheme.onPrimary, // Màu chữ trên nút
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: colorScheme.onPrimary,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
@@ -103,7 +108,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 24),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
