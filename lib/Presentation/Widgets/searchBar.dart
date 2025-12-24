@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../Core/Constants/SearchBar/search_type.dart';
 
-class CustomSearchBar extends StatelessWidget {
-  // Pass the current values in to make this a controlled widget.
+class CustomSearchBar extends StatefulWidget {
   final String searchQuery;
   final SearchType searchType;
   final SortOrder sortOrder;
 
-  // Callbacks with specific types for type safety.
   final Function(String) onSearchQueryChanged;
   final Function(SearchType) onSearchTypeChanged;
   final Function(SortOrder) onSortOrderChanged;
@@ -23,6 +21,39 @@ class CustomSearchBar extends StatelessWidget {
   });
 
   @override
+  State<CustomSearchBar> createState() => _CustomSearchBarState();
+}
+
+class _CustomSearchBarState extends State<CustomSearchBar> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.searchQuery);
+  }
+
+  @override
+  void didUpdateWidget(CustomSearchBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only update the controller's text if the parent's query has changed.
+    // This prevents the cursor from resetting on every build.
+    if (widget.searchQuery != _controller.text) {
+      _controller.text = widget.searchQuery;
+      // Move the cursor to the end.
+      _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: _controller.text.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -36,8 +67,8 @@ class CustomSearchBar extends StatelessWidget {
         Expanded(
           flex: 2,
           child: TextField(
-            controller: TextEditingController(text: searchQuery),
-            onChanged: onSearchQueryChanged,
+            controller: _controller, // Use the state's controller
+            onChanged: widget.onSearchQueryChanged,
             style: TextStyle(fontSize: 14, color: colorScheme.onSurface),
             decoration: InputDecoration(
               hintText: "Search...",
@@ -53,17 +84,16 @@ class CustomSearchBar extends StatelessWidget {
               suffixIcon: IconButton(
                 tooltip: "Change order",
                 icon: Icon(
-                  sortOrder == SortOrder.ascending
+                  widget.sortOrder == SortOrder.ascending
                       ? Icons.arrow_drop_up
                       : Icons.arrow_drop_down,
                   color: colorScheme.primary,
                 ),
                 onPressed: () {
-                  final newOrder = sortOrder == SortOrder.ascending
+                  final newOrder = widget.sortOrder == SortOrder.ascending
                       ? SortOrder.descending
                       : SortOrder.ascending;
-                  // Pass the enum value directly.
-                  onSortOrderChanged(newOrder);
+                  widget.onSortOrderChanged(newOrder);
                 },
               )
             ),
@@ -82,14 +112,14 @@ class CustomSearchBar extends StatelessWidget {
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<SearchType>(
-                value: searchType,
+                value: widget.searchType,
                 isExpanded: true,
                 icon: Icon(Icons.filter_list, size: 20, color: colorScheme.onSurfaceVariant),
                 style: TextStyle(fontSize: 13, color: colorScheme.onSurface, fontWeight: FontWeight.w500),
                 dropdownColor: colorScheme.surfaceContainerHighest,
                 onChanged: (SearchType? newValue) {
                   if (newValue != null) {
-                    onSearchTypeChanged(newValue);
+                    widget.onSearchTypeChanged(newValue);
                   }
                 },
                 items: const [
@@ -109,7 +139,6 @@ class CustomSearchBar extends StatelessWidget {
                     value: SearchType.links,
                     child: Text("Links", overflow: TextOverflow.ellipsis),
                   ),
-
                   DropdownMenuItem(
                     value: SearchType.created,
                     child: Text("Day created", overflow: TextOverflow.ellipsis),

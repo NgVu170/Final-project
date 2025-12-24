@@ -8,10 +8,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 import 'package:note_app_using_para/Data/Model/note.dart';
 import 'package:note_app_using_para/Data/Repository/note_repository.dart';
-
+import '../../../Core/Constants/SearchBar/search_type.dart';
 part 'note_state.dart';
-
-enum SearchType { content, hashtag, link }
 
 class NoteCubit extends Cubit<NoteState> {
   //region Attribute and constructor
@@ -103,10 +101,19 @@ class NoteCubit extends Cubit<NoteState> {
             final plainTextContent = _plainTextFromContent(note.content);
             return note.title.toLowerCase().contains(q) ||
                    plainTextContent.toLowerCase().contains(q);
-          case SearchType.hashtag:
+          case SearchType.tags:
             return note.tags.any((tag) => tag.toLowerCase().contains(q));
-          case SearchType.link:
+          case SearchType.links:
             return note.urlLinks?.any((link) => link.toLowerCase().contains(q)) ?? false;
+          case SearchType.notes:
+            // TODO: Handle this case.
+            throw UnimplementedError();
+          case SearchType.created:
+            // TODO: Handle this case.
+            throw UnimplementedError();
+          case SearchType.modified:
+            // TODO: Handle this case.
+            throw UnimplementedError();
         }
       }).toList();
     }

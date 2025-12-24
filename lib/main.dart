@@ -13,18 +13,18 @@ import 'Data/Repository/note_repository.dart';
 import 'Logic/Authentication/auth_cubit.dart';
 import 'Logic/AppUser/appuser_cubit.dart';
 import 'Logic/Folder/folder_cubit.dart';
+import 'Logic/Note/note_cubit.dart';
 import 'Logic/Theme/theme_cubit.dart';
 
 import 'firebase_options.dart';
 //Import Presentation for UI
 import 'Presentation/Screens/Authentication/login_screen.dart';
 import 'Presentation/Screens/root_screen.dart';
-import 'package:flutter/material.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform, // Nên thêm options để tránh lỗi trên các nền tảng khác
+    options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(const NoteAppUsingPara());
 }
@@ -52,6 +52,7 @@ class NoteAppUsingPara extends StatelessWidget{
             BlocProvider(create: (_) => AuthCubit(authRepo,folderRepo)),
             BlocProvider(create: (_) => AppUserCubit(appUserRepo)),
             BlocProvider(create: (_) => FolderCubit(folderRepo)),
+            BlocProvider(create: (_) => NoteCubit(noteRepo)),
           ],
           child: const AppContent(),
         )
@@ -74,24 +75,26 @@ class AppContent extends StatelessWidget{
                 GlobalMaterialLocalizations.delegate,
                 GlobalWidgetsLocalizations.delegate,
                 GlobalCupertinoLocalizations.delegate,
-                FlutterQuillLocalizations.delegate, // Bắt buộc cho Quill Toolbar
+                FlutterQuillLocalizations.delegate, 
               ],
               supportedLocales: FlutterQuillLocalizations.supportedLocales,
 
-               home: BlocBuilder<AuthCubit, AuthState>(
-                 builder: (context, authState){
-                   if (authState is Authenticated){
-                   //   // Đảm bảo bạn đã import đúng file chứa RootScreen
-                     return RootScreen(uid: authState.user.uid);
-                   }
-                   if (authState is Unauthenticated) {
-                     return const LoginScreen();
-                   }
-                   return const Scaffold(
-                     body: Center(child: CircularProgressIndicator()),
-                   );
-                 },
-              )
+              home: BlocConsumer<AuthCubit, AuthState>(
+                listener: (context, state) {
+                  if (state is Unauthenticated) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                      (route) => false,
+                    );
+                  }
+                },
+                builder: (context, authState) {
+                  if (authState is Authenticated) {
+                    return RootScreen(uid: authState.user.uid);
+                  }
+                  return const LoginScreen();
+                },
+              ),
           );
         }
     );
